@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import os
-from optimizer import PoseGraph
+from optimizer import PoseGraphOptimization
 from utils import *
 
 class MonoVideoOdometery(object):
@@ -90,19 +90,24 @@ class MonoVideoOdometery(object):
         """
         Add poses to the optimizer graph
         """
-        if len(self.poses)<local_window+1:
+        if len(self.poses) < local_window + 1:
             return
 
-        self.pose_graph = PoseGraph(verbose = True)
+        self.pose_graph = PoseGraphOptimization()
+        
         local_poses = self.poses[1:][-local_window:]
 
-        for i in range(1,len(local_poses)):   
+        for i in range(1, local_window):
             self.pose_graph.add_vertex(i, local_poses[i])
             self.pose_graph.add_edge((i-1, i), getTransform(local_poses[i], local_poses[i-1]))
             self.pose_graph.optimize(self.args.num_iter)
         
-        self.poses[-local_window+1:] = self.pose_graph.nodes_optimized
-
+        # self.poses[-local_window+1:] = self.pose_graph.nodes_optimized
+        for i in range(local_window - 1):
+            print ('i:', i)
+            print('local_window:', local_window)
+            self.poses[-local_window + 1 + i] = self.pose_graph.get_pose(i).matrix()
+            
     def visual_odometery(self):
         '''
         Used to perform visual odometery. If features fall out of frame

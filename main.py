@@ -96,7 +96,7 @@ def main():
 
         if cnt % 100 == 0:
             output_path = os.path.join(
-                OUTPUT_DIR, 'trajectory_{}.png'.format(cnt))
+                OUTPUT_DIR, 'trajectory_tmp_{}.png'.format(cnt))
             cv2.imwrite(output_path, traj)
 
     mean_rmse_error = np.mean(rmse_errors)
