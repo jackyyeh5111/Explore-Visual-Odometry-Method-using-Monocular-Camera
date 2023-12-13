@@ -9,6 +9,7 @@ import pathlib
 parser = argparse.ArgumentParser()
 parser.add_argument('--feature', '-f', type=str, choices=['sift', 'fast', 'orb'])
 parser.add_argument('--target_num', '-n', type=int, default=-1, help='-1 means that all frames should be processed')
+parser.add_argument('--vis', action='store_true', help='visualize intermediate result')
 
 OUTPUT_DIR = 'output'
 
@@ -52,28 +53,6 @@ def main():
         print(f"----- Processing frames {cnt} -----")
         frame = vo.current_frame
 
-        # for i, (new,old) in enumerate(zip(vo.good_new, vo.good_old)):
-        #     a,b = new.ravel()
-        #     c,d = old.ravel()
-
-        #     if np.linalg.norm(new - old) < 10:
-        #         if flag:
-        #             mask = cv2.line(mask, (a,b),(c,d), color[i].tolist(), 2)
-        #             frame = cv2.circle(frame,(a,b),5,color[i].tolist(),-1)
-
-        # cv2.add(frame, mask)
-        cv2.imshow('frame', frame)
-        k = cv2.waitKey(1)
-        if k == 27:
-            break
-
-        if k == 121:
-            flag = not flag
-            def toggle_out(flag): return "On" if flag else "Off"
-            print("Flow lines turned ", toggle_out(flag))
-            mask = np.zeros_like(vo.old_frame)
-            mask = np.zeros_like(vo.current_frame)
-
         vo.process_frame()
 
         print(vo.get_mono_coordinates())
@@ -105,7 +84,13 @@ def main():
         cv2.putText(traj, 'Green', (270, 120),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-        cv2.imshow('trajectory', traj)
+        if args.vis:
+            cv2.imshow('frame', frame)
+            k = cv2.waitKey(1)
+            if k == 27:
+                break
+
+            cv2.imshow('trajectory', traj)
 
     mean_rmse_error = np.mean(rmse_errors)
     print('avg rmse_error:', mean_rmse_error)
