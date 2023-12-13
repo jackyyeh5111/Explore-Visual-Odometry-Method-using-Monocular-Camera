@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 from monovideoodometery import MonoVideoOdometery
 import os
 import argparse
@@ -10,6 +9,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--feature', '-f', type=str, choices=['sift', 'fast', 'orb'])
 parser.add_argument('--target_num', '-n', type=int, default=-1, help='-1 means that all frames should be processed')
 parser.add_argument('--vis', action='store_true', help='visualize intermediate result')
+parser.add_argument('--optimize', action='store_true', help='enable pose graph optimization')
+parser.add_argument('--local_window', default=5, type=int, help='number of frames to run the optimization')
+parser.add_argument('--num_iter', default=100, type=int, help='number of max iterations to run the optimization')
 
 OUTPUT_DIR = 'output'
 
@@ -18,7 +20,7 @@ def main():
 
     print('======= Initial arguments =======')
     for key, val in vars(args).items():
-        print(f"name: {key} => {val}")
+        print("name: {} => {}".format(key, val))
 
     img_path = './dataset/sequences/00/image_0/'
     pose_path = './dataset/poses/00.txt'
@@ -37,7 +39,7 @@ def main():
     color = np.random.randint(0, 255, (5000, 3))
 
     detector = cv2.FastFeatureDetector_create(threshold=25, nonmaxSuppression=True)
-    vo = MonoVideoOdometery(img_path, pose_path, detector, focal, pp, lk_params)
+    vo = MonoVideoOdometery(args, img_path, pose_path, detector, focal, pp, lk_params)
     traj = np.zeros(shape=(600, 800, 3))
 
     # mask = np.zeros_like(vo.current_frame)
@@ -50,7 +52,7 @@ def main():
         if cnt == args.target_num + 1:
             break
 
-        print(f"----- Processing frames {cnt} -----")
+        print("\n----- Processing frames {} -----".format(cnt))
         frame = vo.current_frame
 
         vo.process_frame()
@@ -92,6 +94,11 @@ def main():
 
             cv2.imshow('trajectory', traj)
 
+        if cnt % 100 == 0:
+            output_path = os.path.join(
+                OUTPUT_DIR, 'trajectory_{}.png'.format(cnt))
+            cv2.imwrite(output_path, traj)
+
     mean_rmse_error = np.mean(rmse_errors)
     print('avg rmse_error:', mean_rmse_error)
     pathlib.Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
@@ -101,7 +108,8 @@ def main():
     cv2.putText(traj, 'avg rmse_error: {:.3f}'.format(mean_rmse_error), (140, 50),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
     
-    output_path = os.path.join(OUTPUT_DIR, 'trajectory.png')
+    output_path = os.path.join(OUTPUT_DIR, 'trajectory_w{}_i{}.png'.format(
+        args.local_window, args.num_iter))
     cv2.imwrite(output_path, traj)
     cv2.destroyAllWindows()
 

@@ -4,6 +4,8 @@
 # Compiled Object files
 *.slo
 *.lo
+.DS_Store
+
 *.o
 *.obj
 
@@ -30,3 +32,12 @@
 *.exe
 *.out
 *.app
+
+Kimera-VIO/
+__pycache__/
+cs543_dataet/
+dataset/
+demo_dataset/
+material/
+output/
+reference/

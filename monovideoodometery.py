@@ -1,16 +1,18 @@
 import numpy as np
 import cv2
 import os
-
+from optimizer import PoseGraph
+from utils import *
 
 class MonoVideoOdometery(object):
     def __init__(self, 
-                img_file_path,
-                pose_file_path,
-                detector,
-                focal_length = 718.8560,
-                pp = (607.1928, 185.2157), 
-                lk_params=dict(winSize  = (21,21), criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01))):
+                 args,
+                 img_file_path,
+                 pose_file_path,
+                 detector,
+                 focal_length = 718.8560,
+                 pp = (607.1928, 185.2157), 
+                 lk_params=dict(winSize  = (21,21), criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01))):
         '''
         Arguments:
             img_file_path {str} -- File path that leads to image sequences
@@ -31,10 +33,12 @@ class MonoVideoOdometery(object):
         self.lk_params = lk_params
         self.focal = focal_length
         self.pp = pp
+        self.args = args
         self.R = np.zeros(shape=(3, 3))
         self.t = np.zeros(shape=(3, 3))
         self.id = 0
         self.n_features = 0
+        self.poses = []
 
         try:
             if not all([".png" in x for x in os.listdir(img_file_path)]):
@@ -81,6 +85,23 @@ class MonoVideoOdometery(object):
         
         return np.array([x.pt for x in p0], dtype=np.float32).reshape(-1, 1, 2)
 
+    def run_optimizer(self, local_window=10):
+
+        """
+        Add poses to the optimizer graph
+        """
+        if len(self.poses)<local_window+1:
+            return
+
+        self.pose_graph = PoseGraph(verbose = True)
+        local_poses = self.poses[1:][-local_window:]
+
+        for i in range(1,len(local_poses)):   
+            self.pose_graph.add_vertex(i, local_poses[i])
+            self.pose_graph.add_edge((i-1, i), getTransform(local_poses[i], local_poses[i-1]))
+            self.pose_graph.optimize(self.args.num_iter)
+        
+        self.poses[-local_window+1:] = self.pose_graph.nodes_optimized
 
     def visual_odometery(self):
         '''
@@ -117,11 +138,20 @@ class MonoVideoOdometery(object):
             if (absolute_scale > 0.1 and abs(t[2][0]) > abs(t[0][0]) and abs(t[2][0]) > abs(t[1][0])):
                 self.t = self.t + absolute_scale*self.R.dot(t)
                 self.R = R.dot(self.R)
+            
+            self.cur_Rt = convert_to_Rt(self.R, self.t)
+            self.poses.append(convert_to_4_by_4(self.cur_Rt))
 
+            if self.args.optimize:
+                self.run_optimizer(self.args.local_window)
+            
+                # update cur R, t
+                # self.R = self.poses[-1][:3, :3]
+                self.t = self.poses[-1][:3, -1].reshape(-1, 1)
+                
         # Save the total number of good features
         self.n_features = self.good_new.shape[0]
-
-
+        
     def get_mono_coordinates(self):
         # We multiply by the diagonal matrix to fix our vector
         # onto same coordinate axis as true values
