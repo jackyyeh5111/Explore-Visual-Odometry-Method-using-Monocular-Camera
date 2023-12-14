@@ -14,6 +14,14 @@ parser.add_argument('--matcher', '-m', type=str,
 parser.add_argument('--target_num', '-n', type=int, default=-1,
                     help='-1 means that all frames should be processed')
 parser.add_argument('--ransac', '-r', type=int, default=5, choices=[5, 8])
+parser.add_argument('--vis', action='store_true',
+                    help='visualize intermediate result')
+parser.add_argument('--optimize', action='store_true',
+                    help='enable pose graph optimization')
+parser.add_argument('--local_window', default=5, type=int,
+                    help='number of frames to run the optimization')
+parser.add_argument('--num_iter', default=100, type=int,
+                    help='number of max iterations to run the optimization')
 
 OUTPUT_DIR = 'results'
 
@@ -26,8 +34,14 @@ def main():
     pose_path = './dataset/poses/00.txt'
     focal = 718.8560
     pp = (607.1928, 185.2157)
-    vo = MonoVisualOdometery(
-        img_path, pose_path, args.detector, args.matcher, focal, pp, args.ransac)
+    vo = MonoVisualOdometery(args,
+                             img_path, 
+                             pose_path, 
+                             args.detector, 
+                             args.matcher, 
+                             focal, 
+                             pp, 
+                             args.ransac)
     traj = np.zeros(shape=(600, 800, 3))
 
     f_num = 0
@@ -39,15 +53,17 @@ def main():
         start_time = time()
         while (vo.hasNextFrame()):
             frame = vo.current_frame
-            cv2.imshow('frame', frame)
-            k = cv2.waitKey(1)
+            
+            if args.vis:
+                cv2.imshow('frame', frame)
+                k = cv2.waitKey(1)
 
-            if k == 27:
-                break
-            if k == 121:
-                flag = not flag
-                def toggle_out(flag): return "On" if flag else "Off"
-                print("Flow lines turned ", toggle_out(flag))
+                if k == 27:
+                    break
+                if k == 121:
+                    flag = not flag
+                    def toggle_out(flag): return "On" if flag else "Off"
+                    print("Flow lines turned ", toggle_out(flag))
 
             vo.process_frame()
             mono_coord = vo.get_mono_coordinates()
@@ -80,7 +96,8 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             cv2.putText(traj, 'Green', (240, 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-            cv2.imshow('trajectory', traj)
+            if args.vis:
+                cv2.imshow('trajectory', traj)
 
             f_num = f_num + 1
             if f_num >= f_tot:

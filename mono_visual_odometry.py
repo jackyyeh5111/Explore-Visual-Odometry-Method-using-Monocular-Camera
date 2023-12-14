@@ -10,6 +10,7 @@ from utils import *
 
 class MonoVisualOdometery(object):
     def __init__(self, 
+                 args,
                  img_file_path, 
                  pose_file_path, 
                  detector, 
@@ -64,6 +65,7 @@ class MonoVisualOdometery(object):
         else:
             raise ValueError('Unknown matcher type: {}'.format(matcher))
 
+        self.args = args
         self.ransac = ransac
         self.RANSAC_NUM_ITERATIONS = 25
         self.RANSAC_THRESHOLD = 1
@@ -82,6 +84,8 @@ class MonoVisualOdometery(object):
         self.K = np.array([[7.215377000000e02, 0.000000000000e00, 6.095593000000e02],
                            [0.000000000000e00, 7.215377000000e02, 1.728540000000e02],
                            [0.000000000000e00, 0.000000000000e00, 1.000000000000e00]])
+        self.poses = []
+        
         try:
             if not all([".png" in x for x in os.listdir(img_file_path)]):
                 raise ValueError(
@@ -111,6 +115,27 @@ class MonoVisualOdometery(object):
         keypoints = np.array([x.pt for x in keypoints], dtype=np.float64)
         return {'keypoints': keypoints, 'descriptors': descriptors}
 
+    def run_optimizer(self, local_window=10):
+
+        """
+        Add poses to the optimizer graph
+        """
+        if len(self.poses) < local_window + 1:
+            return
+
+        self.pose_graph = PoseGraphOptimization()
+        
+        local_poses = self.poses[1:][-local_window:]
+
+        for i in range(1, local_window):
+            self.pose_graph.add_vertex(i, local_poses[i])
+            self.pose_graph.add_edge((i-1, i), getTransform(local_poses[i], local_poses[i-1]))
+            self.pose_graph.optimize(self.args.num_iter)
+        
+        # self.poses[-local_window+1:] = self.pose_graph.nodes_optimized
+        for i in range(local_window - 1):
+            self.poses[-local_window + 1 + i] = self.pose_graph.get_pose(i).matrix()
+            
     def match(self, kptdes):
         good = []
         if self.matcher_name == 'BF':
@@ -192,6 +217,17 @@ class MonoVisualOdometery(object):
             if (absolute_scale > 0.1 and abs(t[2][0]) > abs(t[0][0]) and abs(t[2][0]) > abs(t[1][0])):
                 self.t = self.t + absolute_scale * self.R @ t
                 self.R = R @ self.R
+                
+                self.cur_Rt = convert_to_Rt(self.R, self.t)
+                self.poses.append(convert_to_4_by_4(self.cur_Rt))
+
+                if self.args.optimize:
+                    print ('optmize!!!!')
+                    self.run_optimizer(self.args.local_window)
+
+                    # update cur R, t
+                    self.t = self.poses[-1][:3, -1].reshape(-1, 1)
+
 
     def get_mono_coordinates(self):
         # We multiply by the diagonal matrix to fix our vector onto same coordinate axis as true values
