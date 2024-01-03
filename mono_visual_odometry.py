@@ -3,21 +3,11 @@ import cv2
 import numpy as np
 import cv2
 import os
-from optimizer import PoseGraphOptimization
 from utils import *
-
-
+from factories import FeatureDetectorFactory
 
 class MonoVisualOdometery(object):
-    def __init__(self, 
-                 args,
-                 img_file_path, 
-                 pose_file_path, 
-                 detector, 
-                 matcher, 
-                 focal_length, 
-                 pp, 
-                 ransac=5):
+    def __init__(self, args, img_file_path, pose_file_path, focal_length, pp):
         '''
         Arguments:
             img_file_path {str} -- File path that leads to image sequences
@@ -30,22 +20,14 @@ class MonoVisualOdometery(object):
         Raises:
             ValueError -- Raised when file either file paths are not correct, or img_file_path is not configured correctly
         '''
+        detector = args.detector
+        matcher = args.matcher
         if detector == 'FAST' and matcher != 'LK':
             raise ValueError(
                 'FAST is not a keypoint descriptor and can only be used with Lucas–Kanade.')
 
-        if detector == 'FAST':
-            self.detector = cv2.FastFeatureDetector_create(
-                threshold=25, nonmaxSuppression=True)
-        elif detector == 'BRISK':
-            self.detector = cv2.BRISK_create(thresh=25)
-        elif detector == 'ORB':
-            self.detector = cv2.ORB_create(nfeatures=1000, fastThreshold=20)
-        elif detector == 'SIFT':
-            self.detector = cv2.SIFT_create(nfeatures=2000)
-        else:
-            raise ValueError('Unknown detector type: {}'.format(detector))
-
+        self.detector = FeatureDetectorFactory.generate(args.detector)
+        
         if matcher == 'LK':
             self.lk_params = dict(winSize=(21, 21), criteria=(
                 cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01))
@@ -66,7 +48,7 @@ class MonoVisualOdometery(object):
             raise ValueError('Unknown matcher type: {}'.format(matcher))
 
         self.args = args
-        self.ransac = ransac
+        self.ransac = args.ransac
         self.RANSAC_NUM_ITERATIONS = 25
         self.RANSAC_THRESHOLD = 1
         self.detector_name = detector
@@ -114,27 +96,6 @@ class MonoVisualOdometery(object):
         keypoints, descriptors = self.detector.detectAndCompute(img, None)
         keypoints = np.array([x.pt for x in keypoints], dtype=np.float64)
         return {'keypoints': keypoints, 'descriptors': descriptors}
-
-    def run_optimizer(self, local_window=10):
-
-        """
-        Add poses to the optimizer graph
-        """
-        if len(self.poses) < local_window + 1:
-            return
-
-        self.pose_graph = PoseGraphOptimization()
-        
-        local_poses = self.poses[1:][-local_window:]
-
-        for i in range(1, local_window):
-            self.pose_graph.add_vertex(i, local_poses[i])
-            self.pose_graph.add_edge((i-1, i), getTransform(local_poses[i], local_poses[i-1]))
-            self.pose_graph.optimize(self.args.num_iter)
-        
-        # self.poses[-local_window+1:] = self.pose_graph.nodes_optimized
-        for i in range(local_window - 1):
-            self.poses[-local_window + 1 + i] = self.pose_graph.get_pose(i).matrix()
             
     def match(self, kptdes):
         good = []
@@ -218,17 +179,6 @@ class MonoVisualOdometery(object):
                 self.t = self.t + absolute_scale * self.R @ t
                 self.R = R @ self.R
                 
-                self.cur_Rt = convert_to_Rt(self.R, self.t)
-                self.poses.append(convert_to_4_by_4(self.cur_Rt))
-
-                if self.args.optimize:
-                    print ('optmize!!!!')
-                    self.run_optimizer(self.args.local_window)
-
-                    # update cur R, t
-                    self.t = self.poses[-1][:3, -1].reshape(-1, 1)
-
-
     def get_mono_coordinates(self):
         # We multiply by the diagonal matrix to fix our vector onto same coordinate axis as true values
         diag = np.array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]])
