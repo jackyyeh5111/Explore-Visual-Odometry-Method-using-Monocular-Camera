@@ -1,11 +1,29 @@
-# Explore-Visual-Odometry-Method-using-Monocular-Camera
+# Monocular Feature-Based Visual Odometry using Python OpenCV
 
-This is final project for UIUC 2023 Fall CS543-Computer Vision.
+Welcome! This is our final project for course CS543-Computer-Vision in 2023 Fall. The course page can be found [here](http://luthuli.cs.uiuc.edu/~daf/courses/CV23/CV23.html).
 
-The code is based on this [github repo](https://github.com/alishobeiri/Monocular-Video-Odometery.git)
+The project implements a 2D-to-2D feature-based visual odometry, conducting experiments on different various methods across different components of the visual odometry process.
 
-## Resource
-- [Log Slides](https://docs.google.com/presentation/d/1Isepnl39ltPeq30dweCjixKg9jpub1kSu8L5iaCm7e8/edit#slide=id.p)
-- [project proposal](https://docs.google.com/document/d/1G_CImMcN9QJBGNkAKC4AhU18ULU43vU8zIBm1-4Dl0M/edit)
-- [eecs-442-slam-project](https://github.com/neil-gurnani/eecs-442-slam-project)
-- [Monocular-Visual-Odometry](https://github.com/felixchenfy/Monocular-Visual-Odometry)
+Please check out my portfolio post for a greater detailed description.
+
+## Overview
+
+## Method
+<img src='pics/pipeline.png' width='500'>
+
+The project explores two typical pipelines of feature-based visual odometry: matching & tracking. In general, the system receives frames in a sequential manner. Then it identifies corresponding feature pairs between $t-1$ and $t$
+
+built vision-based lane following system from scratch. Lane detector identifies the lane from the captured frame and provides imaginary waypoints candidates for the controller. Next, the controller selects the best waypoint based on the vehicle state, and sends out next control signal.
+
+The whole system is integrated with ROS. It consists of four primary components:
+1. Camera calibration
+2. Lane detection
+3. State estimation
+4. Controller
+
+
+## Quick Starter Guide
+
+## Results
+
+## TODO
