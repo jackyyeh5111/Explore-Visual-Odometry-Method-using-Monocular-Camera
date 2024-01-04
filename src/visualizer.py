@@ -14,9 +14,9 @@ class Visualizer:
         cv2.waitKey(1)
 
         draw_x, draw_y, draw_z = [int(round(x))
-                                  for x in self.vo.get_mono_coordinates()]
+                                  for x in self.vo.pred_coordinates]
         true_x, true_y, true_z = [int(round(x))
-                                  for x in self.vo.get_true_coordinates()]
+                                  for x in self.vo.gt_coordinates]
         self.traj = cv2.circle(self.traj, (true_x+400, true_z+100),
                                1, list((0, 0, 255)), 4)
         self.traj = cv2.circle(self.traj, (draw_x+400, draw_z+100),
@@ -37,3 +37,4 @@ class Visualizer:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         cv2.putText(self.traj, 'Elapsed Time: {:.3f} s'.format(elasped_time), (60, 150),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        return self.traj

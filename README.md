@@ -27,3 +27,4 @@ We implement various algorithms across each components and compare their perform
 
 ## TODO
 - [ ] pose-graph optimization
+- [ ] Extract more params in config file(some hard code param included in code now)
