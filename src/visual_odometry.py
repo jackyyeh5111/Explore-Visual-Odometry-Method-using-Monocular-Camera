@@ -84,10 +84,7 @@ class VisualOdometry(object):
         return good_old, good_new
 
     def visual_odometery(self):
-        '''
-        Used to perform visual odometery. If features fall out of frame
-        such that there are less than 2000 features remaining, a new feature
-        detection is triggered. 
+        ''' Used to perform visual odometery.
         '''
 
         # ----- feature detection & feature matching/tracking -----
