@@ -22,6 +22,7 @@ We implement various algorithms across each components and compare their perform
 4. (TODO) Optimization: pose-graph
 
 ## Folder Structure
+```
 src
 ├── factories.py
 ├── main.py
@@ -30,6 +31,7 @@ src
 ├── utils.py
 ├── visual_odometry.py
 └── visualizer.py
+```
 
 - `factories.py`: implements Factory design pattern for creating objects without specifying their concrete classes.
 - `main.py`: main entry point.
@@ -82,8 +84,9 @@ Trajectory estimation using (a) 5-point RANSAC. (b) 8-point RANSAC:
 <img width="500" alt="image" src="https://github.com/jackyyeh5111/jackyyeh5111.github.io/assets/22386566/09203608-05cc-4bfe-bfac-f37e997252c7">
 
 ## TODO
-- [ ] pose-graph optimization
-- [ ] Extract more params in config file(some hard code param included in code now)
+- [ ] Integrate pose-graph optimization
+- [ ] Extract more params in config file(some params are hard-coded in code now)
+- [ ] Implement 3D-2D visual odometry
 
 ## Reference
 - [Great blog post by Avi Singh](https://avisingh599.github.io/vision/monocular-vo/)
